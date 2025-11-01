@@ -18,6 +18,9 @@ RIGHT = (1, 0)
 # Цвет фона - черный:
 BOARD_BACKGROUND_COLOR = (0, 0, 0)
 
+# Цвет надписи на игровом поле - белый:
+BOARD_TEXT_COLOR = (255, 255, 255)
+
 # Цвет границы ячейки
 BORDER_COLOR = (93, 216, 228)
 
@@ -60,9 +63,15 @@ class Apple(GameObject):
         super().__init__()
         self.image = pygame.image.load('apple.png')
 
-    def randomize_position(self, snake_position: list,
-                           snake_direction: list) -> None:
-        """Метод классы получения случайных координат"""
+    def randomize_position(self, snake_position: list[list[int, int]],
+                           snake_direction: list[list[int, int]]) -> None:
+        """
+        Метод классы получения случайных координат
+        Поиск позиции появления Яблока будет происходить до тех пор,
+        пока найденная позиция не будет удовлетворять требованию:
+        позиция не попадает на тело Змейки, и
+        не попадает на линию ее движения.
+        """
         flag_in = True
         while flag_in:
             self.position = [
@@ -71,10 +80,6 @@ class Apple(GameObject):
                 (randint(0, (SCREEN_HEIGHT - GRID_SIZE)) // GRID_SIZE)
                 * GRID_SIZE]
 
-            # Поиск позиции появления Яблока будет происходить до тех пор,
-            # пока найденная позиция не будет удовлетворять требованию:
-            # позиция не попадает на тело Змейки, и
-            # не попадает на линию ее движения.
             flag_in = not (
                 (
                     self.position not in snake_position
@@ -102,9 +107,16 @@ class Mine(GameObject):
         self.image = pygame.image.load('mine.png')
         self.position = []
 
-    def randomize_position(self, snake_position: list, snake_direction:
-                           list, apple_position: list) -> None:
-        """Метод классы получения случайных координат для каждой мины"""
+    def randomize_position(self, snake_position: list[list[int, int]],
+                           snake_direction: list,
+                           apple_position: list) -> None:
+        """
+        Метод классы получения случайных координат для каждой мины
+        Поиск позиции установки мины будет происзодить до тех пор,
+        пока найденная позиция не будет удовлетворять требованию:
+        позиция не попадает на тело Змейки и совпадать с позицией
+        Яблока, и не попадает на линию движения Змейки.
+        """
         for index in range(len(self.position)):
             flag_in = True
             while flag_in:
@@ -114,10 +126,6 @@ class Mine(GameObject):
                     (randint(0, (SCREEN_HEIGHT - GRID_SIZE)) // GRID_SIZE)
                     * GRID_SIZE]
 
-                # Поиск позиции установки мины будет происзодить до тех пор,
-                # пока найденная позиция не будет удовлетворять требованию:
-                # позиция не попадает на тело Змейки и совпадать с позицией
-                # Яблока, и не попадает на линию движения Змейки.
                 flag_in = not (
                     (
                         (
@@ -144,7 +152,7 @@ class Mine(GameObject):
 
 
 class Snake(GameObject):
-    """Наслудуемый класс Snake от GameObject"""
+    """Наследуемый класс Snake от GameObject"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -155,20 +163,17 @@ class Snake(GameObject):
         self.direction = RIGHT
         self.next_direction = None
 
-    def draw_cell(self, cell_position: tuple) -> pygame.Rect:
-        """Метод вормирует границы клетки Змейки для прорисовки"""
-        return pygame.Rect(cell_position, (GRID_SIZE, GRID_SIZE))
-
     def draw(self) -> None:
         """Метод класса для прорисовки объекта Snake"""
         for position in self.positions:
-            pygame.draw.rect(screen, self.body_color, self.draw_cell(position))
-            pygame.draw.rect(screen, BORDER_COLOR, self.draw_cell(position), 1)
+            rect = (pygame.Rect(position, (GRID_SIZE, GRID_SIZE)))
+            pygame.draw.rect(screen, self.body_color, rect)
+            pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
 
         # Затирание последнего сегмента
         if self.last:
-            pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR,
-                             self.draw_cell(self.last))
+            rect = (pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE)))
+            pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, rect)
 
     def update_direction(self) -> None:
         """Метод обновления направления после нажатия на кнопку."""
@@ -188,32 +193,31 @@ class Snake(GameObject):
         # Вперед двигается все тело (каждая клетка получает позицию
         # предыдущей по порядку от головы).
         for i in reversed(range(1, len(self.positions))):
-            self.positions[i][0] = self.positions[i - 1][0]
-            self.positions[i][1] = self.positions[i - 1][1]
+            self.positions[i] = self.positions[i - 1].copy()
 
         # Получаем новую позицию головы.
         # Новое значение клетки - это смещение 20 точек
         # по направлению движения.
-        self.positions[0][0] += self.direction[0] * 20
-        self.positions[0][1] += self.direction[1] * 20
-
+        result = [element * GRID_SIZE for element in self.direction]
+        self.positions[0] = [x + y for x, y in zip(self.positions[0], result)]
+        
         # Переносим голову в другую часть поля,
         # если голова должна уйти за его пределы.
         if self.positions[0][0] < 0:
-            self.positions[0][0] = 620
-        elif self.positions[0][0] > 620:
+            self.positions[0][0] = SCREEN_WIDTH - GRID_SIZE
+        elif self.positions[0][0] > SCREEN_WIDTH - GRID_SIZE:
             self.positions[0][0] = 0
 
         if self.positions[0][1] < 0:
-            self.positions[0][1] = 460
-        elif self.positions[0][1] > 460:
+            self.positions[0][1] = SCREEN_HEIGHT - GRID_SIZE
+        elif self.positions[0][1] > SCREEN_HEIGHT - GRID_SIZE:
             self.positions[0][1] = 0
 
     def reset(self) -> None:
         """Метод класса при проигрыше"""
         # Инициализировать шрифт и размер
         font = pygame.font.Font(None, 36)
-        text = font.render('Вы проиграли!', True, (255, 255, 255))
+        text = font.render('Вы проиграли!', True, BOARD_TEXT_COLOR)
         screen.blit(text, (250, 200))
         self.positions = [[(SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2)]]
         self.direction = [1, 0]
@@ -241,7 +245,7 @@ def handle_keys(game_object) -> None:
 def level_visible(level: str) -> None:
     """Функция выводит уровень сложности."""
     font = pygame.font.Font(None, 20)
-    text = font.render(level, True, (255, 255, 255))
+    text = font.render(level, True, BOARD_TEXT_COLOR)
     screen.blit(text, (0, 0))
 
 
