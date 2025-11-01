@@ -276,7 +276,7 @@ def main() -> None:
     while True:
         # Скорость перемещения Змейки зависит от ее длины.
         speed_corrector = len(snake.positions) // 5 + 1
-        clock.tick(SPEED // 3 + speed_corrector)
+        clock.tick(SPEED // 2 + speed_corrector)
         screen.fill((0, 0, 0))
         # На игровом поле показываем Уровень сложности игры.
         level_visible('Уровень сложности: ' + str(speed_corrector))
