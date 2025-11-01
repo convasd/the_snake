@@ -80,18 +80,24 @@ class Apple(GameObject):
                 (randint(0, (SCREEN_HEIGHT - GRID_SIZE)) // GRID_SIZE)
                 * GRID_SIZE]
 
+            # Распаковываем координаты головы, яблока и направление
+            # движения головы.
+            snake_x_position, snake_y_position = snake_position[0]
+            snake_x_direction, snake_y_direction = snake_direction
+            apple_x_position, apple_y_position = self.position
+
             flag_in = not (
                 (
                     self.position not in snake_position
                 ) and not (
                     (
-                        (self.position[0] == snake_position[0][0]
+                        (apple_x_position == snake_x_position
                          ) and (
-                            snake_direction[0] == 0)
+                            snake_x_direction == 0)
                     ) or (
-                        (self.position[1] == snake_position[0][1]
+                        (apple_y_position == snake_y_position
                          ) and (
-                             snake_direction[1] == 0))))
+                            snake_y_direction == 0))))
 
     def draw(self, surface: pygame.surface.Surface) -> None:
         """Метод класса прорисовки объекта Apple"""
@@ -105,7 +111,6 @@ class Mine(GameObject):
     def __init__(self) -> None:
         super().__init__()
         self.image = pygame.image.load('mine.png')
-        self.position = []
 
     def randomize_position(self, snake_position: list[list[int, int]],
                            snake_direction: list,
@@ -117,38 +122,42 @@ class Mine(GameObject):
         позиция не попадает на тело Змейки и совпадать с позицией
         Яблока, и не попадает на линию движения Змейки.
         """
-        for index in range(len(self.position)):
-            flag_in = True
-            while flag_in:
-                self.position[index] = [
-                    (randint(0, (SCREEN_WIDTH - GRID_SIZE)) // GRID_SIZE)
-                    * GRID_SIZE,
-                    (randint(0, (SCREEN_HEIGHT - GRID_SIZE)) // GRID_SIZE)
-                    * GRID_SIZE]
+        flag_in = True
+        while flag_in:
+            self.position = [
+                (randint(0, (SCREEN_WIDTH - GRID_SIZE)) // GRID_SIZE)
+                * GRID_SIZE,
+                (randint(0, (SCREEN_HEIGHT - GRID_SIZE)) // GRID_SIZE)
+                * GRID_SIZE]
 
-                flag_in = not (
+            # Распаковываем координаты головы, мины и направление
+            # движения головы.
+            snake_x_position, snake_y_position = snake_position[0]
+            snake_x_direction, snake_y_direction = snake_direction
+            mine_x_position, mine_y_position = self.position
+
+            flag_in = not (
+                (
+                    (
+                        self.position not in snake_position
+                    ) and (
+                        self.position != apple_position)
+                ) and (
                     (
                         (
-                            self.position[index] not in snake_position
+                            mine_x_position != snake_x_position
                         ) and (
-                            self.position[index] != apple_position)
-                    ) and (
+                            snake_x_direction == 0)
+                    ) or (
                         (
-                            (
-                                self.position[index][0] != snake_position[0][0]
-                            ) and (
-                                snake_direction[0] == 0)
-                        ) or (
-                            (
-                                self.position[index][1] != snake_position[0][1]
-                            ) and (
-                                snake_direction[1] == 0))))
+                            mine_y_position != snake_y_position
+                        ) and (
+                            snake_y_direction == 0))))
 
     def draw(self, surface: pygame.surface.Surface) -> None:
         """Метод класса прорисовки объекта Mine"""
-        for position_index in self.position:
-            self.rect = self.image.get_rect(topleft=tuple(position_index))
-            surface.blit(self.image, self.rect)
+        self.rect = self.image.get_rect(topleft=tuple(self.position))
+        surface.blit(self.image, self.rect)
 
 
 class Snake(GameObject):
@@ -199,19 +208,24 @@ class Snake(GameObject):
         # Новое значение клетки - это смещение 20 точек
         # по направлению движения.
         result = [element * GRID_SIZE for element in self.direction]
-        self.positions[0] = [x + y for x, y in zip(self.positions[0], result)]
+        self.positions[0] = [x + y for x, y in zip(self.get_head_position(),
+                                                   result)]
+
+        # Распаковываем координаты головы
+        snake_x_position, snake_y_position = self.get_head_position()
 
         # Переносим голову в другую часть поля,
         # если голова должна уйти за его пределы.
-        if self.positions[0][0] < 0:
-            self.positions[0][0] = SCREEN_WIDTH - GRID_SIZE
-        elif self.positions[0][0] > SCREEN_WIDTH - GRID_SIZE:
-            self.positions[0][0] = 0
+        if snake_x_position < 0:
+            snake_x_position = SCREEN_WIDTH - GRID_SIZE
+        elif snake_x_position > SCREEN_WIDTH - GRID_SIZE:
+            snake_x_position = 0
 
-        if self.positions[0][1] < 0:
-            self.positions[0][1] = SCREEN_HEIGHT - GRID_SIZE
-        elif self.positions[0][1] > SCREEN_HEIGHT - GRID_SIZE:
-            self.positions[0][1] = 0
+        if snake_y_position < 0:
+            snake_y_position = SCREEN_HEIGHT - GRID_SIZE
+        elif snake_y_position > SCREEN_HEIGHT - GRID_SIZE:
+            snake_y_position = 0
+        self.positions[0] = [snake_x_position, snake_y_position]
 
     def reset(self) -> None:
         """Метод класса при проигрыше"""
@@ -255,6 +269,7 @@ def main() -> None:
     apple = Apple()
     snake = Snake()
     mine = Mine()
+    mine_visible = False
 
     apple.randomize_position(snake.positions, snake.direction)
 
@@ -265,13 +280,8 @@ def main() -> None:
         screen.fill((0, 0, 0))
         # На игровом поле показываем Уровень сложности игры.
         level_visible('Уровень сложности: ' + str(speed_corrector))
-
-        # Начиная от 2 уровня на поле выставляем мину.
-        if speed_corrector > 2:
-            mine_visible = True
-        else:
+        if speed_corrector < 2:
             mine_visible = False
-            mine.position = []
 
         # Прорисовывыем объекты игры.
         apple.draw(screen)
@@ -288,22 +298,21 @@ def main() -> None:
         # Если Змейка решила, "покушать себя" или попала на мину,
         # то "Игра закончилась"
         if (snake.get_head_position() in snake.positions[1:]) or (
-                (snake.get_head_position() in mine.position) and mine_visible):
+                (snake.get_head_position() == mine.position) and mine_visible):
             snake.draw
             snake.reset()
 
         # Если Змейка съела яблоко, то она наращивает свои "мышцы",
-        # а у мины и яблока новые координаты
+        # а у мины и яблока новые координаты.
+        # Начиная от 2 уровня на поле выставляем мину.
         if snake.get_head_position() == apple.position:
             snake.positions.append(apple.position)
             apple.randomize_position(snake.positions, snake.direction)
-
-            # Каждые 10 клеток Змейки увеличивается количество мин.
-            if (len(snake.positions) % 10) == 0:
-                mine.position.append([0, 0])
-            if mine.position is not None:
-                mine.randomize_position(snake.positions,
-                                        snake.direction, apple.position)
+            if speed_corrector >= 2:
+                mine_visible = True
+            if mine_visible:
+                mine.randomize_position(snake.positions, snake.direction,
+                                        apple.position)
 
         # Змейка просчитывает позиции клеток своего тела.
         snake.move()
