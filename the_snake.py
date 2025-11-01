@@ -200,7 +200,7 @@ class Snake(GameObject):
         # по направлению движения.
         result = [element * GRID_SIZE for element in self.direction]
         self.positions[0] = [x + y for x, y in zip(self.positions[0], result)]
-        
+
         # Переносим голову в другую часть поля,
         # если голова должна уйти за его пределы.
         if self.positions[0][0] < 0:
