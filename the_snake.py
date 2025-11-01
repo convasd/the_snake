@@ -113,8 +113,8 @@ class Mine(GameObject):
         self.image = pygame.image.load('mine.png')
 
     def randomize_position(self, snake_position: list[list[int, int]],
-                           snake_direction: list,
-                           apple_position: list) -> None:
+                           snake_direction: list[int, int],
+                           apple_position: list[int, int]) -> None:
         """
         Метод классы получения случайных координат для каждой мины
         Поиск позиции установки мины будет происзодить до тех пор,
@@ -190,7 +190,7 @@ class Snake(GameObject):
             self.direction = self.next_direction
             self.next_direction = None
 
-    def get_head_position(self) -> list:
+    def get_head_position(self) -> list[int, int]:
         """Возвращает позицию головы Змейки"""
         return self.positions[0]
 
@@ -239,7 +239,7 @@ class Snake(GameObject):
         time.sleep(2)
 
 
-def handle_keys(game_object) -> None:
+def handle_keys(game_object: Snake) -> None:
     """Функция обработки действий пользователя"""
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
