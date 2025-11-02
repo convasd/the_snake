@@ -106,7 +106,7 @@ class Apple(GameObject):
 
 
 class Mine(GameObject):
-    """Дочерний класс Mine от Apple"""
+    """Дочерний класс Mine от GameObject"""
 
     def __init__(self) -> None:
         super().__init__()
